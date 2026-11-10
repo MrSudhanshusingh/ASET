@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}ASET | Student Registration{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 1.5rem auto;">
+    <div class="card" style="box-shadow: var(--shadow-lg); border-radius: var(--radius-lg);">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="width: 58px; height: 58px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 900; margin-bottom: 0.75rem; letter-spacing: 1px; box-shadow: var(--shadow-sm);">
+                ASET
+            </div>
+            <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--dark);">ASET Candidate Registration</h2>
+            <p style="color: var(--primary); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">Secure. Offline. Intelligent.</p>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">
+                Create your examination profile for Ansh Secure Examination Technology. Register once to take all tests!
+            </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('student_register') }}" id="registerForm" onsubmit="return validateRegisterForm()">
+            <input type="hidden" name="face_photo_data" id="facePhotoData">
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="e.g. Ankit Sharma" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">College Roll Number *</label>
+                    <input type="text" name="roll_no" id="rollNoInput" class="form-control" placeholder="e.g. CS202615" required style="text-transform: uppercase;">
+                    <small style="color: var(--text-muted); font-size: 0.78rem;">This will be your permanent Login ID.</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Department / Branch *</label>
+                <select name="department" class="form-control" required>
+                    <option value="Computer Science & Engineering">Computer Science & Engineering (CSE)</option>
+                    <option value="Information Technology">Information Technology (IT)</option>
+                    <option value="Electronics & Communication">Electronics & Communication (ECE)</option>
+                    <option value="Electrical Engineering">Electrical Engineering (EE)</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering (ME)</option>
+                    <option value="Civil Engineering">Civil Engineering (CE)</option>
+                </select>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" name="password" id="regPassword" class="form-control" placeholder="••••••••" required minlength="4">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm Password *</label>
+                    <input type="password" name="confirm_password" id="regConfirmPassword" class="form-control" placeholder="••••••••" required minlength="4">
+                </div>
+            </div>
+
+            <!-- Optional Pre-registration Camera Capture -->
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem; margin: 1.2rem 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <div>
+                        <strong style="color: var(--dark); font-size: 0.95rem;">📸 Register Face Profile (Recommended)</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">
+                            Capturing your face now speeds up your pre-exam biometric verification.
+                        </div>
+                    </div>
+                    <button type="button" id="startCamBtn" onclick="initRegistrationCamera()" class="btn btn-secondary btn-sm">
+                        Open Camera
+                    </button>
+                </div>
+
+                <div id="camSection" style="display: none; text-align: center; margin-top: 1rem;">
+                    <div style="position: relative; width: 100%; max-width: 320px; height: 220px; background: #0f172a; border-radius: var(--radius-sm); margin: 0 auto 0.75rem auto; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                        <video id="regVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    </div>
+                    <canvas id="regCanvas" style="display: none;"></canvas>
+
+                    <button type="button" onclick="captureRegistrationFace()" class="btn btn-primary btn-sm">
+                        📸 Snap Face Photo
+                    </button>
+                    <div id="photoStatus" style="font-size: 0.85rem; font-weight: 700; color: var(--success); margin-top: 0.5rem; display: none;">
+                        ✓ Face photo captured and ready!
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" style="padding: 0.8rem; font-size: 1.05rem; font-weight: 700;">
+                Complete Registration & Sign In &rarr;
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+            Already have an account? 
+            <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 700; text-decoration: none;">
+                Sign In here
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+<script>
+let regCamera = null;
+
+async function initRegistrationCamera() {
+    const camSection = document.getElementById('camSection');
+    const startCamBtn = document.getElementById('startCamBtn');
+    camSection.style.display = 'block';
+    startCamBtn.style.display = 'none';
+
+    regCamera = new ProctorCamera('regVideo', 'regCanvas');
+    const res = await regCamera.startCamera();
+    if (!res.success) {
+        alert('Could not start camera: ' + (res.error || 'Please allow camera permission.'));
+    }
+}
+
+function captureRegistrationFace() {
+    if (!regCamera) return;
+    const base64 = regCamera.captureSnapshot();
+    if (base64) {
+        document.getElementById('facePhotoData').value = base64;
+        const status = document.getElementById('photoStatus');
+        status.style.display = 'block';
+        status.textContent = '✓ Profile photo captured successfully!';
+    } else {
+        alert('Unable to capture from camera stream.');
+    }
+}
+
+function validateRegisterForm() {
+    const p1 = document.getElementById('regPassword').value;
+    const p2 = document.getElementById('regConfirmPassword').value;
+    if (p1 !== p2) {
+        alert('Passwords do not match! Please check and confirm your password.');
+        return false;
+    }
+    return true;
+}
+</script>
+{% endblock %}

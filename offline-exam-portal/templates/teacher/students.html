@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Registered Students | ASET{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <a href="{{ url_for('teacher_dashboard') }}" style="text-decoration: none; color: var(--primary); font-weight: 600;">&larr; Back to Dashboard</a>
+            <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--dark); margin-top: 0.5rem;">
+                Registered Students Directory
+            </h1>
+            <p style="color: var(--text-muted);">
+                Total Candidates: <strong>{{ students|length }}</strong> &bull; Self-registered via ASET LAN portal
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('student_register') }}" target="_blank" class="btn btn-primary btn-sm">
+                + Open Registration Link
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Enrolled Candidates</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Students can login using their Roll No</span>
+        </div>
+
+        {% if not students %}
+            <div style="text-align: center; padding: 2.5rem 1rem;">
+                <h4>No Students Registered Yet</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    Share the link <code>http://&lt;LAN_IP&gt;:5000/register</code> with students in the computer lab.
+                </p>
+            </div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">Photo</th>
+                            <th>Roll Number</th>
+                            <th>Student Name</th>
+                            <th>Department / Branch</th>
+                            <th>Enrolled Date</th>
+                            <th>Total Exams Attempted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for st in students %}
+                        <tr>
+                            <td>
+                                {% if st.profile_photo and st.profile_photo.startswith('static/') %}
+                                    <img src="/{{ st.profile_photo }}" alt="Face" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
+                                {% elif st.profile_photo %}
+                                    <img src="{{ url_for('static', filename='uploads/faces/' + st.profile_photo) }}" alt="Face" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
+                                {% else %}
+                                    <div style="width: 44px; height: 44px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                                        👤
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td><code style="font-weight: bold; font-size: 0.95rem;">{{ st.roll_no }}</code></td>
+                            <td><strong style="color: var(--dark);">{{ st.full_name }}</strong></td>
+                            <td>{{ st.department }}</td>
+                            <td style="font-size: 0.85rem; color: var(--text-muted);">{{ st.created_at.strftime("%d %b %Y") }}</td>
+                            <td>
+                                <span style="background: var(--primary-light); color: var(--primary); font-weight: 700; padding: 2px 8px; border-radius: 999px; font-size: 0.82rem;">
+                                    {{ st.exam_sessions|length }} Sessions
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
