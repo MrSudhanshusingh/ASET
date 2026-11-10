@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Identity & Face Verification | {{ exam.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 850px; margin: 0 auto;">
+    <div style="margin-bottom: 1.5rem;">
+        <a href="{{ url_for('student_dashboard') }}" style="text-decoration: none; color: var(--primary); font-weight: 600;">&larr; Back to Dashboard</a>
+        <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--dark); margin-top: 0.5rem;">
+            Step 1: Facial Attendance & Integrity Check
+        </h1>
+        <p style="color: var(--text-muted);">
+            Exam: <strong>{{ exam.title }} ({{ exam.subject_code }})</strong> &bull; Candidate: <strong>{{ student.full_name }} ({{ student.roll_no }})</strong>
+        </p>
+    </div>
+
+    <div class="grid-2" style="grid-template-columns: 1fr 1.2fr; align-items: start;">
+        <!-- Left: Webcam Verification Box -->
+        <div class="card" style="text-align: center;">
+            <h3 class="card-title" style="font-size: 1.15rem; margin-bottom: 0.75rem;">📸 Live Face Camera</h3>
+            
+            <div style="position: relative; width: 100%; height: 240px; background: #0f172a; border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: center;">
+                <video id="webcamVideo" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+                <div id="cameraPlaceholder" style="position: absolute; color: #94a3b8; font-size: 0.85rem; padding: 1rem;">
+                    Camera initializing... Allow camera permission in browser.
+                </div>
+            </div>
+
+            <canvas id="snapshotCanvas" style="display: none;"></canvas>
+
+            <button type="button" id="captureBtn" onclick="performFacialVerification()" class="btn btn-primary btn-block" style="padding: 0.65rem;">
+                📸 Capture & Verify Attendance
+            </button>
+
+            <!-- Verification Feedback Box -->
+            <div id="verificationResult" style="display: none; margin-top: 1rem; padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.85rem; text-align: left;">
+            </div>
+        </div>
+
+        <!-- Right: Exam Passcode & Security Rules -->
+        <div class="card">
+            <h3 class="card-title" style="font-size: 1.15rem; margin-bottom: 0.75rem;">🔒 Exam Unlock Protocols</h3>
+
+            <form id="startExamForm" method="POST" action="{{ url_for('student_start_exam', exam_id=exam.id) }}">
+                <input type="hidden" name="face_verified" id="faceVerifiedInput" value="0">
+                <input type="hidden" name="captured_photo_data" id="capturedPhotoInput" value="">
+
+                <div class="form-group">
+                    <label class="form-label">
+                        🔑 Enter Exam Passcode (Announced in Lab) *
+                    </label>
+                    <input type="text" name="exam_key" id="examKeyInput" class="form-control" placeholder="e.g. {{ exam.exam_key }}" required style="font-size: 1.1rem; letter-spacing: 2px; font-weight: 700; text-transform: uppercase;">
+                    <small style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                        The paper is encrypted with AES-256. It decrypts only when this secret key is verified.
+                    </small>
+                </div>
+
+                <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: var(--radius-sm); padding: 1rem; margin: 1.25rem 0;">
+                    <div style="font-weight: 700; color: #92400e; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                        ⚠️ Anti-Malpractice Rules Checklist:
+                    </div>
+                    <ul style="font-size: 0.82rem; color: #78350f; padding-left: 1.2rem; line-height: 1.6;">
+                        <li><strong>Fullscreen is mandatory:</strong> Leaving full-screen raises an instant alarm.</li>
+                        <li><strong>No tab/app switching:</strong> Switching tabs or minimizing browser will add a cheat strike!</li>
+                        <li><strong>3-Strike Rule:</strong> Reaching 3 strikes results in immediate termination and auto-submission.</li>
+                        <li><strong>Dynamic Watermark:</strong> Your Name, Roll Number, and IP will be visibly stamped on the screen.</li>
+                        <li><strong>Copy/Paste & Right-Click:</strong> Completely disabled during the test.</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; font-size: 0.88rem;">
+                        <input type="checkbox" id="rulesAgree" required style="width: 18px; height: 18px; accent-color: var(--primary); margin-top: 2px;">
+                        <span>I understand and agree to the offline proctoring rules and code of conduct.</span>
+                    </label>
+                </div>
+
+                <button type="submit" id="startExamBtn" class="btn btn-success btn-block" style="padding: 0.8rem; font-size: 1.05rem; font-weight: 700;" disabled>
+                    Enter Secure Exam Console &rarr;
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+<script>
+let proctorCam;
+let isFaceVerified = false;
+
+window.addEventListener('DOMContentLoaded', async () => {
+    proctorCam = new ProctorCamera('webcamVideo', 'snapshotCanvas');
+    const res = await proctorCam.startCamera();
+    const placeholder = document.getElementById('cameraPlaceholder');
+    if (res.success) {
+        if (placeholder) placeholder.style.display = 'none';
+    } else {
+        if (placeholder) placeholder.textContent = 'Camera error: ' + (res.error || 'Please grant camera access.');
+    }
+});
+
+async function performFacialVerification() {
+    const resultBox = document.getElementById('verificationResult');
+    const startBtn = document.getElementById('startExamBtn');
+    const faceInput = document.getElementById('faceVerifiedInput');
+    const photoInput = document.getElementById('capturedPhotoInput');
+
+    const photoBase64 = proctorCam.captureSnapshot();
+    if (!photoBase64) {
+        alert('Please allow camera access and make sure your face is visible in front of the lens.');
+        return;
+    }
+
+    resultBox.style.display = 'block';
+    resultBox.style.background = '#f1f5f9';
+    resultBox.style.color = 'var(--dark)';
+    resultBox.innerHTML = '⏳ <i>Analyzing face biometrics with OpenCV...</i>';
+
+    try {
+        const response = await fetch('/api/verify-face', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                image: photoBase64,
+                exam_id: {{ exam.id }}
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            isFaceVerified = true;
+            faceInput.value = "1";
+            photoInput.value = photoBase64;
+
+            resultBox.style.background = 'var(--success-light)';
+            resultBox.style.color = '#065f46';
+            resultBox.style.border = '1px solid #86efac';
+            resultBox.innerHTML = `<strong>✓ Face Verified!</strong><br>Face detected with high clarity. Attendance stamped. Score: ${data.score}%`;
+
+            checkFormValidity();
+        } else {
+            resultBox.style.background = 'var(--danger-light)';
+            resultBox.style.color = '#991b1b';
+            resultBox.style.border = '1px solid #fca5a5';
+            resultBox.innerHTML = `<strong>✖ Verification Failed:</strong> ${data.message || 'Face not recognized.'}<br><small>Position yourself directly in front of the camera and try again.</small>`;
+        }
+    } catch (err) {
+        console.error(err);
+        resultBox.style.background = 'var(--danger-light)';
+        resultBox.style.color = '#991b1b';
+        resultBox.innerHTML = 'Error communicating with proctoring server.';
+    }
+}
+
+document.getElementById('rulesAgree').addEventListener('change', checkFormValidity);
+document.getElementById('examKeyInput').addEventListener('input', checkFormValidity);
+
+function checkFormValidity() {
+    const rulesChecked = document.getElementById('rulesAgree').checked;
+    const keyVal = document.getElementById('examKeyInput').value.trim();
+    const startBtn = document.getElementById('startExamBtn');
+
+    if (isFaceVerified && rulesChecked && keyVal.length > 0) {
+        startBtn.disabled = false;
+    } else {
+        startBtn.disabled = true;
+    }
+}
+</script>
+{% endblock %}

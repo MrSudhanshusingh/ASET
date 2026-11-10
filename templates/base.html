@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}ASET{% endblock %} | Secure. Offline. Intelligent.</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand-logo" style="display: flex; align-items: center; gap: 0.65rem; text-decoration: none;">
+            <div class="brand-icon" style="background: linear-gradient(135deg, #4f46e5, #0ea5e9); font-weight: 900; font-size: 0.85rem; letter-spacing: 0.5px; padding: 0 4px;">ASET</div>
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-weight: 800; font-size: 1.2rem; color: var(--dark); line-height: 1.1;">ASET</span>
+                <span style="font-size: 0.68rem; color: var(--primary); font-weight: 700; letter-spacing: 0.4px;">Secure. Offline. Intelligent.</span>
+            </div>
+        </a>
+        
+        <div class="nav-links">
+            {% if session.get('user_id') %}
+                {% if session.get('role') == 'teacher' %}
+                    <a href="{{ url_for('teacher_dashboard') }}">Dashboard</a>
+                    <a href="{{ url_for('teacher_students') }}">Students</a>
+                    <a href="{{ url_for('teacher_monitor') }}">Live Monitor</a>
+                    <a href="{{ url_for('leaderboard_view') }}">Leaderboard</a>
+                {% else %}
+                    <a href="{{ url_for('student_dashboard') }}">My Exams</a>
+                    <a href="{{ url_for('leaderboard_view') }}">Leaderboard</a>
+                {% endif %}
+                <span class="user-badge">
+                    👤 {{ session.get('full_name', 'User') }} ({{ session.get('role')|capitalize }})
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Logout</a>
+            {% else %}
+                <a href="{{ url_for('leaderboard_view') }}">Leaderboard</a>
+                <a href="{{ url_for('student_register') }}" style="color: var(--primary); font-weight: 700;">Register</a>
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <span>{{ message }}</span>
+                        <button onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; font-weight:bold;">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer style="text-align: center; padding: 1.5rem; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: auto;">
+        <strong>ASET</strong> &copy; 2026 &bull; Ansh Secure Examination Technology &bull; <span style="color: var(--primary); font-weight: 600;">Secure. Offline. Intelligent.</span> &bull; CSE Department
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

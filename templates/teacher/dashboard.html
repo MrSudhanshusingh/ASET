@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Faculty Dashboard | ASET{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--dark);">ASET Faculty Control Hub</h1>
+        <p style="color: var(--text-muted);">Manage offline exams, encrypted question banks, and live lab proctoring</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{{ url_for('teacher_students') }}" class="btn btn-secondary">👥 Enrolled Students</a>
+        <a href="{{ url_for('teacher_create_exam') }}" class="btn btn-primary">+ Create New Exam</a>
+        <a href="{{ url_for('teacher_monitor') }}" class="btn btn-secondary">📡 Live Monitor</a>
+    </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="grid-4" style="margin-bottom: 1.5rem;">
+    <div class="card" style="padding: 1.25rem;">
+        <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">TOTAL EXAMS</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--primary); margin: 0.2rem 0;">{{ exams|length }}</div>
+        <div style="font-size: 0.8rem; color: var(--success);">Configured in SQLite</div>
+    </div>
+    <div class="card" style="padding: 1.25rem;">
+        <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">ACTIVE EXAMS</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--success); margin: 0.2rem 0;">{{ active_exams_count }}</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">Currently visible to students</div>
+    </div>
+    <div class="card" style="padding: 1.25rem;">
+        <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">STUDENT SUBMISSIONS</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--warning); margin: 0.2rem 0;">{{ total_submissions }}</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">Graded automatically</div>
+    </div>
+    <div class="card" style="padding: 1.25rem;">
+        <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">ENCRYPTION STATUS</div>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #0284c7; margin: 0.4rem 0;">AES-256 Active</div>
+        <div style="font-size: 0.8rem; color: var(--success);">Questions encrypted at rest</div>
+    </div>
+</div>
+
+<!-- Exam Management Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Configured Examination Papers</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">LAN Host: <code>http://localhost:5000</code></span>
+    </div>
+
+    {% if not exams %}
+        <div style="text-align: center; padding: 2.5rem 1rem;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📝</div>
+            <h4>No Exams Created Yet</h4>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Get started by creating your first offline paper.</p>
+            <a href="{{ url_for('teacher_create_exam') }}" class="btn btn-primary">+ Create Exam</a>
+        </div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Subject & Title</th>
+                        <th>Duration</th>
+                        <th>Marks</th>
+                        <th>Passcode (Paper Key)</th>
+                        <th>Shuffling</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exam in exams %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; color: var(--dark);">{{ exam.title }}</div>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">Code: <code>{{ exam.subject_code }}</code> &bull; Questions: {{ exam.questions|length }}</span>
+                        </td>
+                        <td>{{ exam.duration_minutes }} Mins</td>
+                        <td>{{ exam.total_marks }} pts (Min: {{ exam.passing_marks }})</td>
+                        <td>
+                            <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{{ exam.exam_key }}</code>
+                        </td>
+                        <td>
+                            {% if exam.shuffle_questions %}
+                                <span style="font-size: 0.75rem; background: var(--primary-light); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-weight: 600;">Q Shuffled</span>
+                            {% endif %}
+                            {% if exam.shuffle_options %}
+                                <span style="font-size: 0.75rem; background: #f0fdf4; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Options Shuffled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if exam.is_active %}
+                                <span style="background: var(--success-light); color: #065f46; font-size: 0.8rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;">● Active</span>
+                            {% else %}
+                                <span style="background: #f1f5f9; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;">○ Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                                <a href="{{ url_for('teacher_manage_questions', exam_id=exam.id) }}" class="btn btn-secondary btn-sm" title="Edit Question Bank">
+                                    📝 Questions ({{ exam.questions|length }})
+                                </a>
+                                <a href="{{ url_for('teacher_results', exam_id=exam.id) }}" class="btn btn-secondary btn-sm" title="View Student Results">
+                                    📊 Results
+                                </a>
+                                <a href="{{ url_for('leaderboard_view', exam_id=exam.id) }}" class="btn btn-secondary btn-sm" title="View Exam Leaderboard">
+                                    🏆 Ranks
+                                </a>
+                                <a href="{{ url_for('teacher_toggle_exam', exam_id=exam.id) }}" class="btn btn-sm {% if exam.is_active %}btn-danger{% else %}btn-success{% endif %}" title="Toggle Active">
+                                    {{ 'Pause' if exam.is_active else 'Activate' }}
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

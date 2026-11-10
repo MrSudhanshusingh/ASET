@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard | ASET{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    <div style="margin-bottom: 2rem;">
+        <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">ASET Examination Hall</span>
+        <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--dark); margin-top: 0.2rem;">
+            Welcome, {{ user.full_name }}
+        </h1>
+        <p style="color: var(--text-muted);">
+            Roll Number: <code>{{ user.roll_no }}</code> &bull; Department: {{ user.department }}
+        </p>
+    </div>
+
+    <!-- Active Available Exams -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Available Offline Exams</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Active in College LAN</span>
+        </div>
+
+        {% if not exams %}
+            <div style="text-align: center; padding: 2.5rem 1rem;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+                <h4>No Scheduled Exams Right Now</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    Check back when your exam invigilator announces the start of the paper.
+                </p>
+            </div>
+        {% else %}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for exam in exams %}
+                    {% set session = student_sessions.get(exam.id) %}
+                    <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background: #ffffff;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--dark); margin: 0;">{{ exam.title }}</h3>
+                                <span style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 700;">{{ exam.subject_code }}</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+                                {{ exam.description or 'Offline proctored computer-based test.' }}
+                            </div>
+                            <div style="display: flex; gap: 1rem; font-size: 0.82rem; color: var(--dark-muted); flex-wrap: wrap;">
+                                <span>⏱️ <b>Duration:</b> {{ exam.duration_minutes }} Mins</span>
+                                <span>🎯 <b>Total Marks:</b> {{ exam.total_marks }}</span>
+                                <span>🔒 <b>Passcode Protected:</b> Yes</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            {% if session and session.status == 'completed' %}
+                                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem;">
+                                    <span style="background: var(--success-light); color: #065f46; font-size: 0.85rem; font-weight: 700; padding: 3px 10px; border-radius: 999px;">
+                                        ✓ Exam Submitted
+                                    </span>
+                                    <a href="{{ url_for('student_result_analysis', session_id=session.id) }}" class="btn btn-primary btn-sm">
+                                        📊 View Score & Analysis &rarr;
+                                    </a>
+                                </div>
+                            {% elif session and session.status == 'in_progress' %}
+                                <a href="{{ url_for('student_exam_room', session_id=session.id) }}" class="btn btn-warning" style="font-weight: 700;">
+                                    ⚠️ Resume In-Progress Exam &rarr;
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('student_verify', exam_id=exam.id) }}" class="btn btn-primary" style="padding: 0.65rem 1.4rem;">
+                                    📸 Verify Face & Take Exam &rarr;
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

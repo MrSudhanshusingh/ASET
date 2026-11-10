@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Proctor Monitor | ASET{% endblock %}
+
+{% block head_extra %}
+<meta http-equiv="refresh" content="10">
+{% endblock %}
+
+{% block content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <a href="{{ url_for('teacher_dashboard') }}" style="text-decoration: none; color: var(--primary); font-weight: 600;">&larr; Back to Dashboard</a>
+            <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--dark); margin-top: 0.5rem;">
+                📡 ASET Live Proctoring & Malpractice Monitor
+            </h1>
+            <p style="color: var(--text-muted);">
+                Real-time tracking of candidate terminals across college LAN (Auto-refreshes every 10s)
+            </p>
+        </div>
+        <div>
+            <button onclick="window.location.reload()" class="btn btn-secondary btn-sm">🔄 Refresh Feed Now</button>
+        </div>
+    </div>
+
+    <!-- Active Sessions Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Active Lab Candidates ({{ sessions|length }})</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Max Allowed Strikes: <strong>3</strong></span>
+        </div>
+
+        {% if not sessions %}
+            <div style="text-align: center; padding: 3rem 1rem;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💻</div>
+                <h4>No Candidates Currently Active</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    When students start their exams, their live camera verifications and violation counters will appear here.
+                </p>
+            </div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Face Photo</th>
+                            <th>Student</th>
+                            <th>Roll Number</th>
+                            <th>Exam & Set</th>
+                            <th>Exam Status</th>
+                            <th>Cheat Strikes</th>
+                            <th>Violation Log</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sessions %}
+                        <tr>
+                            <td style="width: 70px;">
+                                {% if s.attendance and s.attendance.photo_path %}
+                                    <img src="{{ url_for('static', filename='uploads/faces/' + s.attendance.photo_path) }}" 
+                                         alt="Face" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid {% if s.warning_count > 0 %}var(--danger){% else %}var(--success){% endif %};">
+                                {% else %}
+                                    <div style="width: 50px; height: 50px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                        👤
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong style="color: var(--dark);">{{ s.student.full_name }}</strong>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ s.student.department }}</div>
+                            </td>
+                            <td><code>{{ s.student.roll_no }}</code></td>
+                            <td>
+                                <div>{{ s.exam.title }}</div>
+                                <span style="font-size: 0.75rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
+                                    Set: {{ s.assigned_set }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if s.status == 'in_progress' %}
+                                    <span style="background: #dbeafe; color: #1e40af; font-size: 0.82rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
+                                        ● In Progress
+                                    </span>
+                                {% elif s.status == 'completed' %}
+                                    <span style="background: var(--success-light); color: #065f46; font-size: 0.82rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
+                                        ✓ Submitted
+                                    </span>
+                                {% else %}
+                                    <span style="background: var(--danger-light); color: #991b1b; font-size: 0.82rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
+                                        ✖ Terminated
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    {% for i in range(3) %}
+                                        <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: {% if i < s.warning_count %}var(--danger){% else %}#e2e8f0{% endif %};"></span>
+                                    {% endfor %}
+                                    <span style="font-size: 0.85rem; font-weight: 700; margin-left: 0.3rem; {% if s.warning_count > 0 %}color: var(--danger);{% endif %}">
+                                        {{ s.warning_count }}/3
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                {% set violations = s.get_violations() %}
+                                {% if violations %}
+                                    <details style="cursor: pointer; font-size: 0.82rem;">
+                                        <summary style="color: var(--danger); font-weight: 600;">
+                                            {{ violations|length }} Alert(s)
+                                        </summary>
+                                        <div style="margin-top: 0.4rem; background: #fff1f2; border: 1px solid #fecdd3; border-radius: var(--radius-sm); padding: 0.5rem; max-width: 250px;">
+                                            {% for v in violations %}
+                                                <div style="margin-bottom: 0.3rem;">
+                                                    <span style="font-weight: 700; color: #9f1239;">[{{ v.timestamp }}]</span> {{ v.type }}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </details>
+                                {% else %}
+                                    <span style="color: var(--success); font-size: 0.82rem; font-weight: 600;">✓ Clean Session</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

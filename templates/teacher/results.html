@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Results & Analytics | {{ exam.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto;">
+    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <a href="{{ url_for('teacher_dashboard') }}" style="text-decoration: none; color: var(--primary); font-weight: 600;">&larr; Back to Dashboard</a>
+            <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--dark); margin-top: 0.5rem;">
+                Results & Performance Analytics
+            </h1>
+            <p style="color: var(--text-muted);">
+                Exam: <strong>{{ exam.title }}</strong> &bull; Code: <code>{{ exam.subject_code }}</code>
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{{ url_for('teacher_export_csv', exam_id=exam.id) }}" class="btn btn-secondary btn-sm">
+                📥 Export to Excel (CSV)
+            </a>
+            <a href="{{ url_for('leaderboard_view', exam_id=exam.id) }}" class="btn btn-primary btn-sm">
+                🏆 View Leaderboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Analytics Summary Cards -->
+    <div class="grid-4" style="margin-bottom: 1.5rem;">
+        <div class="card" style="padding: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">STUDENTS APPEARED</div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: var(--primary); margin: 0.2rem 0;">{{ sessions|length }}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Total test sessions</div>
+        </div>
+        <div class="card" style="padding: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">AVERAGE SCORE</div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: var(--dark); margin: 0.2rem 0;">{{ avg_score }} / {{ exam.total_marks }}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Class Average: {{ avg_pct }}%</div>
+        </div>
+        <div class="card" style="padding: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">PASSING RATE</div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: var(--success); margin: 0.2rem 0;">{{ pass_count }}/{{ sessions|length }}</div>
+            <div style="font-size: 0.8rem; color: var(--success);">{{ pass_percentage }}% Cleared</div>
+        </div>
+        <div class="card" style="padding: 1.25rem;">
+            <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">TOP SCORE</div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #d97706; margin: 0.2rem 0;">{{ highest_score }} / {{ exam.total_marks }}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Highest in batch</div>
+        </div>
+    </div>
+
+    <!-- Student Scores Table -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Candidate Evaluation Records</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Passing threshold: {{ exam.passing_marks }} marks</span>
+        </div>
+
+        {% if not sessions %}
+            <div style="text-align: center; padding: 2.5rem 1rem;">
+                <h4>No Submissions Yet</h4>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Once students submit their answers, grades will appear here automatically.</p>
+            </div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Roll Number</th>
+                            <th>Marks Obtained</th>
+                            <th>Percentage</th>
+                            <th>Result</th>
+                            <th>Time Taken</th>
+                            <th>Strikes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sessions %}
+                        <tr>
+                            <td>
+                                <strong style="color: var(--dark);">{{ s.student.full_name }}</strong>
+                            </td>
+                            <td><code>{{ s.student.roll_no }}</code></td>
+                            <td>
+                                <strong style="color: var(--primary); font-size: 1.05rem;">{{ s.total_score }}</strong> / {{ exam.total_marks }}
+                            </td>
+                            <td>{{ s.percentage }}%</td>
+                            <td>
+                                {% if s.passed %}
+                                    <span style="background: var(--success-light); color: #065f46; font-size: 0.8rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;">PASS</span>
+                                {% else %}
+                                    <span style="background: var(--danger-light); color: #991b1b; font-size: 0.8rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;">FAIL</span>
+                                {% endif %}
+                            </td>
+                            <td>⏱️ {{ s.time_taken_seconds // 60 }}m {{ s.time_taken_seconds % 60 }}s</td>
+                            <td>
+                                {% if s.warning_count == 0 %}
+                                    <span style="color: var(--success); font-weight: 600; font-size: 0.85rem;">0</span>
+                                {% else %}
+                                    <span style="color: var(--danger); font-weight: 700; font-size: 0.85rem;">⚠️ {{ s.warning_count }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

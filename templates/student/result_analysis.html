@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}ASET Exam Result & Analysis | {{ exam.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 950px; margin: 0 auto;">
+    <!-- Result Header -->
+    <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <a href="{{ url_for('student_dashboard') }}" style="text-decoration: none; color: var(--primary); font-weight: 600;">&larr; Back to My Exams</a>
+            <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--dark); margin-top: 0.5rem;">
+                ASET Performance & Answer Analysis
+            </h1>
+            <p style="color: var(--text-muted);">
+                Exam: <strong>{{ exam.title }} ({{ exam.subject_code }})</strong> &bull; Candidate: <strong>{{ student.full_name }} ({{ student.roll_no }})</strong>
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('leaderboard_view', exam_id=exam.id) }}" class="btn btn-primary" style="padding: 0.65rem 1.4rem;">
+                🏆 Check College Leaderboard &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- Scorecard Banner -->
+    <div class="card" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white; border: none; padding: 2rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-lg);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">FINAL EXAMINATION SCORE</div>
+                <div style="font-size: 3rem; font-weight: 900; margin: 0.3rem 0; line-height: 1;">
+                    {{ session_record.total_score }} <span style="font-size: 1.5rem; color: #94a3b8; font-weight: 500;">/ {{ exam.total_marks }}</span>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem;">
+                    {% if session_record.passed %}
+                        <span style="background: #10b981; color: white; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: 0.9rem;">
+                            PASSED
+                        </span>
+                    {% else %}
+                        <span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: 0.9rem;">
+                            FAILED (Min: {{ exam.passing_marks }})
+                        </span>
+                    {% endif %}
+                    <span style="color: #cbd5e1; font-size: 0.9rem;">Percentage: <b>{{ session_record.percentage }}%</b></span>
+                </div>
+            </div>
+
+            <!-- Stats Chips -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: left;">
+                <div style="background: rgba(255,255,255,0.08); padding: 0.75rem 1rem; border-radius: var(--radius-sm);">
+                    <div style="font-size: 0.75rem; color: #94a3b8;">TIME TAKEN</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.2rem;">⏱️ {{ session_record.time_taken_seconds // 60 }}m {{ session_record.time_taken_seconds % 60 }}s</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 0.75rem 1rem; border-radius: var(--radius-sm);">
+                    <div style="font-size: 0.75rem; color: #94a3b8;">ANTI-CHEAT STRIKES</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.2rem; {% if session_record.warning_count > 0 %}color: #f87171;{% else %}color: #4ade80;{% endif %}">
+                        {% if session_record.warning_count == 0 %}✓ 0 Strikes (Clean){% else %}⚠️ {{ session_record.warning_count }} Strikes{% endif %}
+                    </div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 0.75rem 1rem; border-radius: var(--radius-sm);">
+                    <div style="font-size: 0.75rem; color: #94a3b8;">CORRECT ANSWERS</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #4ade80; margin-top: 0.2rem;">{{ correct_count }} / {{ total_q_count }}</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.08); padding: 0.75rem 1rem; border-radius: var(--radius-sm);">
+                    <div style="font-size: 0.75rem; color: #94a3b8;">ACCURACY RATE</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; margin-top: 0.2rem;">{{ accuracy_pct }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question-by-Question Deep Analysis -->
+    <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--dark); margin-bottom: 1rem;">
+        Detailed Question-by-Question Review
+    </h3>
+
+    {% for item in analysis_items %}
+    <div class="card" style="margin-bottom: 1.25rem; border-left: 4px solid {% if item.is_correct %}var(--success){% elif item.selected_option %}var(--danger){% else %}#94a3b8{% endif %};">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+            <div>
+                <span style="font-weight: 800; color: var(--dark); font-size: 1.05rem;">Q{{ loop.index }}.</span>
+                <span style="font-size: 0.8rem; margin-left: 0.5rem; font-weight: 700; {% if item.is_correct %}color: var(--success);{% elif item.selected_option %}color: var(--danger);{% else %}color: var(--text-muted);{% endif %}">
+                    {% if item.is_correct %}
+                        ✓ Correct (+{{ item.marks_awarded }} Marks)
+                    {% elif item.selected_option %}
+                        ✖ Incorrect (0 Marks)
+                    {% else %}
+                        ○ Unattempted (0 Marks)
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <div style="font-size: 1.05rem; font-weight: 600; color: var(--dark); margin-bottom: 1rem; line-height: 1.5;">
+            {{ item.question_text }}
+        </div>
+
+        <!-- Options Breakdown -->
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+            {% for opt_key, opt_text in [('A', item.option_a), ('B', item.option_b), ('C', item.option_c), ('D', item.option_d)] %}
+                {% set is_user_choice = (item.selected_option == opt_key) %}
+                {% set is_correct_choice = (item.correct_option == opt_key) %}
+                
+                <div style="padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 2px solid 
+                    {% if is_correct_choice %}#10b981
+                    {% elif is_user_choice and not is_correct_choice %}#ef4444
+                    {% else %}var(--border){% endif %};
+                    background:
+                    {% if is_correct_choice %}#ecfdf5
+                    {% elif is_user_choice and not is_correct_choice %}#fef2f2
+                    {% else %}#ffffff{% endif %};
+                    display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="margin-right: 0.4rem; color: {% if is_correct_choice %}#065f46{% elif is_user_choice %}#991b1b{% else %}var(--dark){% endif %};">
+                            {{ opt_key }}.
+                        </strong>
+                        <span style="font-size: 0.95rem;">{{ opt_text }}</span>
+                    </div>
+
+                    <div>
+                        {% if is_correct_choice %}
+                            <span style="font-size: 0.78rem; font-weight: 800; background: #10b981; color: white; padding: 2px 8px; border-radius: 4px;">
+                                ✓ Correct Answer
+                            </span>
+                        {% endif %}
+                        {% if is_user_choice and not is_correct_choice %}
+                            <span style="font-size: 0.78rem; font-weight: 800; background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">
+                                ✖ Your Answer
+                            </span>
+                        {% elif is_user_choice and is_correct_choice %}
+                            <span style="font-size: 0.78rem; font-weight: 800; background: #047857; color: white; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">
+                                ★ You Chose This
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if item.explanation %}
+        <div style="background: #f8fafc; border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 0.88rem; color: var(--text-main);">
+            💡 <strong>Faculty Explanation:</strong> {{ item.explanation }}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

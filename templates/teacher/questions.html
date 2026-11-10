@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Questions | {{ exam.title }}{% endblock %}
+
+{% block content %}
+<div>
+    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <a href="{{ url_for('teacher_dashboard') }}" style="text-decoration: none; color: var(--primary); font-weight: 600;">&larr; Back to Dashboard</a>
+            <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--dark); margin-top: 0.5rem;">
+                Question Bank: {{ exam.title }}
+            </h1>
+            <p style="color: var(--text-muted);">
+                Code: <code>{{ exam.subject_code }}</code> &bull; Total Questions: <strong>{{ questions|length }}</strong> &bull; Total Marks: <strong>{{ total_marks_configured }}</strong> / {{ exam.total_marks }}
+            </p>
+        </div>
+        <div>
+            <a href="#addQuestionForm" class="btn btn-primary">+ Add New MCQ</a>
+        </div>
+    </div>
+
+    <div class="grid-2" style="grid-template-columns: 1.4fr 1fr; align-items: start;">
+        <!-- Left: Question List Preview -->
+        <div>
+            {% if not questions %}
+                <div class="card" style="text-align: center; padding: 3rem 1rem;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">❓</div>
+                    <h4>No Questions Added Yet</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Add multiple-choice questions using the form on the right.</p>
+                </div>
+            {% else %}
+                {% for q in questions %}
+                <div class="card" style="position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                        <div>
+                            <span style="font-weight: 800; color: var(--primary); font-size: 1.05rem;">Q{{ loop.index }}.</span>
+                            <span style="font-size: 0.8rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-left: 0.5rem;">
+                                Set: {{ q.set_name }}
+                            </span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">
+                                Marks: +{{ q.marks }} {% if q.negative_marks > 0 %}(-{{ q.negative_marks }}){% endif %}
+                            </span>
+                        </div>
+                        <a href="{{ url_for('teacher_delete_question', q_id=q.id) }}" class="btn btn-sm" style="color: var(--danger); background: var(--danger-light); padding: 2px 8px;" onclick="return confirm('Delete this question?')">
+                            &times; Delete
+                        </a>
+                    </div>
+
+                    <div style="font-size: 1rem; font-weight: 600; color: var(--dark); margin-bottom: 1rem;">
+                        {{ q.question_text }}
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem; font-size: 0.9rem;">
+                        <div style="padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); {% if q.correct_option == 'A' %}background: var(--success-light); border-color: #86efac; font-weight: bold;{% endif %}">
+                            <strong>A.</strong> {{ q.option_a }}
+                        </div>
+                        <div style="padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); {% if q.correct_option == 'B' %}background: var(--success-light); border-color: #86efac; font-weight: bold;{% endif %}">
+                            <strong>B.</strong> {{ q.option_b }}
+                        </div>
+                        <div style="padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); {% if q.correct_option == 'C' %}background: var(--success-light); border-color: #86efac; font-weight: bold;{% endif %}">
+                            <strong>C.</strong> {{ q.option_c }}
+                        </div>
+                        <div style="padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); {% if q.correct_option == 'D' %}background: var(--success-light); border-color: #86efac; font-weight: bold;{% endif %}">
+                            <strong>D.</strong> {{ q.option_d }}
+                        </div>
+                    </div>
+
+                    {% if q.explanation %}
+                    <div style="background: #f8fafc; border-left: 3px solid var(--secondary); padding: 0.5rem 0.75rem; font-size: 0.82rem; color: var(--dark-muted); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                        💡 <strong>Explanation for Students:</strong> {{ q.explanation }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Right: Add MCQ Form -->
+        <div id="addQuestionForm" class="card" style="position: sticky; top: 80px;">
+            <div class="card-header">
+                <h3 class="card-title" style="font-size: 1.15rem;">+ Add MCQ Question</h3>
+            </div>
+
+            <form method="POST" action="{{ url_for('teacher_add_question', exam_id=exam.id) }}">
+                <div class="form-group">
+                    <label class="form-label">Question Statement *</label>
+                    <textarea name="question_text" class="form-control" rows="3" placeholder="Enter problem statement here..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Option A *</label>
+                    <input type="text" name="option_a" class="form-control" placeholder="Option A text" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Option B *</label>
+                    <input type="text" name="option_b" class="form-control" placeholder="Option B text" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Option C *</label>
+                    <input type="text" name="option_c" class="form-control" placeholder="Option C text" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Option D *</label>
+                    <input type="text" name="option_d" class="form-control" placeholder="Option D text" required>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Correct Option *</label>
+                        <select name="correct_option" class="form-control" required>
+                            <option value="A">Option A</option>
+                            <option value="B">Option B</option>
+                            <option value="C">Option C</option>
+                            <option value="D">Option D</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Marks Awarded</label>
+                        <input type="number" name="marks" class="form-control" value="2.0" step="0.5" min="0.5" required>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Set Allocation</label>
+                        <select name="set_name" class="form-control">
+                            <option value="ALL">All Sets (Common)</option>
+                            <option value="A">Set A Only</option>
+                            <option value="B">Set B Only</option>
+                            <option value="C">Set C Only</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Negative Marks</label>
+                        <input type="number" name="negative_marks" class="form-control" value="0.0" step="0.25" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Explanation / Solution Note (Shown post-exam)</label>
+                    <textarea name="explanation" class="form-control" rows="2" placeholder="Explain why this option is correct..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" style="padding: 0.7rem;">
+                    Save Encrypted MCQ &rarr;
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

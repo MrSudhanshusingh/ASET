@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}ASET Leaderboard | Merit Rankings{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;">ASET &bull; Secure. Offline. Intelligent.</span>
+        <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--dark); margin: 0.2rem 0;">🏆 ASET College Leaderboard</h1>
+        <p style="color: var(--text-muted);">Real-time performance rankings based on score accuracy and speed</p>
+
+        <!-- Exam Filter Selector -->
+        {% if exams|length > 1 %}
+        <div style="margin-top: 1rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <label style="font-weight: 600; font-size: 0.9rem;">Select Exam:</label>
+            <select class="form-control" style="width: auto; padding: 0.4rem 0.8rem;" onchange="window.location.href='?exam_id=' + this.value">
+                {% for ex in exams %}
+                    <option value="{{ ex.id }}" {% if current_exam and current_exam.id == ex.id %}selected{% endif %}>
+                        {{ ex.title }} ({{ ex.subject_code }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not current_exam or not leaderboard_data %}
+        <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <h3>No Exam Results Available Yet</h3>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">
+                Students need to complete the exam for rankings to appear on the leaderboard.
+            </p>
+        </div>
+    {% else %}
+        <!-- TOP 3 PODIUM DISPLAY -->
+        {% if leaderboard_data|length >= 3 %}
+        <div class="podium-container">
+            <!-- Rank 2 (Silver) -->
+            <div class="podium-step step-rank2">
+                <div class="podium-badge">🥈</div>
+                <div style="font-weight: 700; font-size: 0.95rem; color: var(--dark); word-break: break-word;">{{ leaderboard_data[1].student_name }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ leaderboard_data[1].roll_no }}</div>
+                <div style="font-weight: 800; color: var(--primary); margin: 0.25rem 0;">{{ leaderboard_data[1].score }}/{{ current_exam.total_marks }}</div>
+                <div class="podium-pillar">2</div>
+            </div>
+
+            <!-- Rank 1 (Gold) -->
+            <div class="podium-step step-rank1">
+                <div class="podium-badge">👑</div>
+                <div style="font-weight: 800; font-size: 1.05rem; color: var(--dark); word-break: break-word;">{{ leaderboard_data[0].student_name }}</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">{{ leaderboard_data[0].roll_no }}</div>
+                <div style="font-weight: 900; color: #d97706; margin: 0.25rem 0; font-size: 1.1rem;">{{ leaderboard_data[0].score }}/{{ current_exam.total_marks }}</div>
+                <div class="podium-pillar">1</div>
+            </div>
+
+            <!-- Rank 3 (Bronze) -->
+            <div class="podium-step step-rank3">
+                <div class="podium-badge">🥉</div>
+                <div style="font-weight: 700; font-size: 0.95rem; color: var(--dark); word-break: break-word;">{{ leaderboard_data[2].student_name }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ leaderboard_data[2].roll_no }}</div>
+                <div style="font-weight: 800; color: var(--primary); margin: 0.25rem 0;">{{ leaderboard_data[2].score }}/{{ current_exam.total_marks }}</div>
+                <div class="podium-pillar">3</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- FULL RANKING TABLE -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">{{ current_exam.title }} ({{ current_exam.subject_code }})</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                        Total Marks: {{ current_exam.total_marks }} &bull; Passing Marks: {{ current_exam.passing_marks }} &bull; Submissions: {{ leaderboard_data|length }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 70px;">Rank</th>
+                            <th>Student Candidate</th>
+                            <th>Roll Number</th>
+                            <th>Score</th>
+                            <th>Percentage</th>
+                            <th>Time Taken</th>
+                            <th>Integrity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in leaderboard_data %}
+                        <tr {% if session.get('roll_no') == row.roll_no %}style="background: #eef2ff; font-weight: bold;"{% endif %}>
+                            <td>
+                                {% if row.rank == 1 %}
+                                    <span style="font-size: 1.2rem;">🥇 1</span>
+                                {% elif row.rank == 2 %}
+                                    <span style="font-size: 1.2rem;">🥈 2</span>
+                                {% elif row.rank == 3 %}
+                                    <span style="font-size: 1.2rem;">🥉 3</span>
+                                {% else %}
+                                    <span style="font-weight: 700; color: var(--text-muted); padding-left: 0.5rem;">#{{ row.rank }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>
+                                    <span style="font-weight: 600;">{{ row.student_name }}</span>
+                                    {% if session.get('roll_no') == row.roll_no %}
+                                        <span style="font-size: 0.75rem; background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">You</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td><code>{{ row.roll_no }}</code></td>
+                            <td>
+                                <span style="font-weight: 800; color: var(--primary);">{{ row.score }}</span> / {{ current_exam.total_marks }}
+                            </td>
+                            <td>
+                                <span style="display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.82rem; font-weight: 700; {% if row.passed %}background: var(--success-light); color: #065f46;{% else %}background: var(--danger-light); color: #991b1b;{% endif %}">
+                                    {{ row.percentage }}% ({{ 'PASS' if row.passed else 'FAIL' }})
+                                </span>
+                            </td>
+                            <td>⏱️ {{ row.time_taken_str }}</td>
+                            <td>
+                                {% if row.warning_count == 0 %}
+                                    <span style="color: var(--success); font-size: 0.82rem; font-weight: 600;">✓ Clean (0 Strikes)</span>
+                                {% else %}
+                                    <span style="color: var(--warning); font-size: 0.82rem; font-weight: 600;">⚠️ {{ row.warning_count }} Strikes</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
